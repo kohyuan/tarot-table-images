@@ -1,9 +1,10 @@
-# タロットテーブル Threads のピックカードの画像を作るコード
+# タロットテーブル Threads のピックカードと自由投稿の画像を作るコード
 #
 # 使い方:
 #   python3 make_images.py --spec spec.json --out 出力フォルダ [--cards 水彩画のフォルダ]
 #
-# ピックカードのコメントに付ける「3枚開けた画面」と、投稿に付ける伏せた3枚の画像を作る。
+# ピックカードのコメントに付ける「3枚開けた画面」（kind "open"）と、投稿に付ける伏せた3枚の画像、
+# 自由投稿の型3に付ける「1枚のカードの画像」（kind "one"）を作る。
 # --cards を渡すと、3枚とも水彩画があるときは水彩画版で作り、1枚でも無ければシンプル版で作る。
 # 水彩画のファイル名は「番号_日本語_英語_向き.png」。番号は card_id（M14、C02 など）でもローマ数字（XIV など）でもよい。
 # 向きは upright か reversed。逆位置のファイルが無ければ、正位置の絵を上下逆にして使う。
@@ -13,11 +14,12 @@
 #    "items": [
 #      {"post_id": "T0016", "kind": "open", "scheduled_at": "2026-10-19 23:00",
 #       "caption": "10/20(火) - 26(月) 仕事・勉強",
-#       "cards": ["W10", "P07", "P12"], "pos": ["R", "R", "R"]}
+#       "cards": ["W10", "P07", "P12"], "pos": ["R", "R", "R"]},
+#      {"post_id": "F0003", "kind": "one", "card": "C02", "pos": "R"}
 #    ]}
 #
 # 出力:
-#   出力フォルダ/img/<post_id>.png  … 1200x675 の3枚開けた画面
+#   出力フォルダ/img/<post_id>.png  … 1200x675 の3枚開けた画面、または1枚のカードの画像
 #   出力フォルダ/img/back.png       … 伏せた3枚（毎回同じ）
 #
 # シンプル版のカードの絵はアプリ（tarot-table リポジトリ）の deck/art.mjs をそのまま使う。
@@ -116,6 +118,16 @@ def wc_page(caption, uris, labels):
     cards = "".join(f'<div class="slot"><img class="wc" src="{u}"><div class="lab">{l}</div></div>' for u, l in zip(uris, labels))
     return f'<!doctype html><html><head><meta charset="utf-8"><style>{css}</style></head><body><div class="cap">{caption}</div><div class="row">{cards}</div></body></html>'
 
+def one_page(caption, svg, label):
+    css = CSS + ".slot{width:336px}.card svg{width:336px;height:560px}.row{top:%dpx}" % (52 if caption else 26)
+    cap = f'<div class="cap">{caption}</div>' if caption else ''
+    return f'<!doctype html><html><head><meta charset="utf-8"><style>{css}</style></head><body>{cap}<div class="row"><div class="slot"><div class="card">{svg}</div><div class="lab">{label}</div></div></div></body></html>'
+
+def wc_one_page(caption, uri, label):
+    css = CSS + ".slot{width:400px}.wc{width:400px;height:560px;object-fit:contain;display:block;border-radius:8px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.55))}.row{top:%dpx}" % (44 if caption else 20)
+    cap = f'<div class="cap">{caption}</div>' if caption else ''
+    return f'<!doctype html><html><head><meta charset="utf-8"><style>{css}</style></head><body>{cap}<div class="row"><div class="slot"><img class="wc" src="{uri}"><div class="lab">{label}</div></div></div></body></html>'
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--spec", required=True)
@@ -126,7 +138,7 @@ def main():
     if not os.path.exists(os.path.join(REPO, "deck", "art.mjs")):
         sys.exit(f"カードの絵のコードが見つからない: {REPO}/deck/art.mjs")
     spec = json.load(open(a.spec, encoding="utf-8"))
-    items = [it for it in spec["items"] if it["kind"] == "open"]
+    items = [it for it in spec["items"] if it["kind"] in ("open", "one")]
     os.makedirs(os.path.join(a.out, "img"), exist_ok=True)
     tmp = tempfile.mkdtemp()
     js = os.path.join(tmp, "svg.mjs"); open(js, "w").write(NODE.replace("__REPO__", REPO))
@@ -138,6 +150,17 @@ def main():
     pages = {"back": page("The Tarot Table", [(svgs["back"], l) for l in ["左", "中", "右"]])}
     art = {}
     for it in items:
+        if it["kind"] == "one":
+            c, p = it["card"], it["pos"]
+            label = POS[p]
+            if (c, "U") in wc or (c, "R") in wc:
+                uri = crop_card(wc[(c, p)], False) if (c, p) in wc else crop_card(wc[(c, "U" if p == "R" else "R")], True)
+                pages[it["post_id"]] = wc_one_page(it.get("caption", ""), uri, label)
+                art[it["post_id"]] = "watercolor"
+            else:
+                pages[it["post_id"]] = one_page(it.get("caption", ""), svgs[it["post_id"]][0], label)
+                art[it["post_id"]] = "simple"
+            continue
         labels = [f'{lr} {POS[it["pos"][i]]}' for i, lr in enumerate(["左", "中", "右"])]
         have = all((c, "U") in wc or (c, "R") in wc for c in it["cards"])
         if have:
