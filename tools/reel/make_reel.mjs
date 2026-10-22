@@ -136,6 +136,7 @@ if (!au || au.codec_name !== 'aac') bad.push('音声（AAC）が無い');
 if (!(d >= 3 && d <= 90)) bad.push(`長さ ${d} 秒が 3〜90 秒に入らない`);
 if (fitInfo.q > 270) bad.push('問いが長すぎて枠に収まらない');
 fitInfo.reads.forEach((h, i) => { if (h > 230) bad.push(`${['左', '中', '右'][i]}の読みが長すぎて枠に収まらない`); });
+(fitInfo.names || []).forEach((w, i) => { if (w > 1040) bad.push(`${['左', '中', '右'][i]}のカード名とキーワードが長すぎて横に収まらない`); });
 if (bad.length) die(bad.join(' / '));
 console.log(`✓ ${out}（${d.toFixed(1)}秒、${(fs.statSync(out).size / 1e6).toFixed(1)}MB、${((Date.now() - t0) / 1000).toFixed(0)}秒で作成）`);
 process.exit(0);

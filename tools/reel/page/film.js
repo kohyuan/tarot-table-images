@@ -87,7 +87,7 @@
   const pos = ['左', '中', '右'].map(s => el('pos', s));
   const kws = PICKS.map(p => el('kw', '<span>' + esc(p.word || p.name) + '</span>'));
   const q = el('q', esc(T.q)), stop = el('stop', T.stop), bar = el('bar', '<i></i>'), barI = bar.querySelector('i');
-  const cnames = PICKS.map(p => el('cname', `${esc(p.name)}<small>${p.rev ? '逆位置' : '正位置'}</small>${p.word ? `<b>${esc(p.word)}</b>` : ''}`));
+  const cnames = PICKS.map(p => el('cname', `<span>${esc(p.name)}<small>${p.rev ? '逆位置' : '正位置'}</small>${p.word ? `<b>${esc(p.word)}</b>` : ''}</span>`));
   const reads = PICKS.map(p => el('read', br(p.read)));
   seed = 5; const motes = Array.from({ length: 30 }, () => ({ e: el('mote'), a: rnd() * 6.283, r: 250 + rnd() * 260, sp: 30 + rnd() * 60, s: .5 + rnd() * .9, ph: rnd() * 6.28, d: rnd() * 1.2 }));
   const sparks = XS.map(() => Array.from({ length: 8 }, () => el('mote')));
@@ -164,13 +164,14 @@
     const ru = pr(t, DUR - 1.12, DUR - .6); show(ring, ru > 0 && ru < 1 ? 1 - ru : 0, 600, 1420, .5 + 1.4 * eo(ru));
   }
   window.DUR = DUR; window.render = render;
-  window.CHECK = () => ({ q: q.scrollHeight, reads: reads.map(r => r.scrollHeight), main: main.firstChild.offsetWidth });
+  window.CHECK = () => ({ names: cnames.map(c => c.firstChild.offsetWidth), q: q.scrollHeight, reads: reads.map(r => r.scrollHeight), main: main.firstChild.offsetWidth });
   const ALL = Object.values(T).join('') + '左中右正位置逆位置' + PICKS.map(p => p.name + p.word + p.read).join('') + RIB.length + ribList.map(r => cardInfo(r.id).name).join('') + Object.values(SUIT).join('');
   Promise.all([
     document.fonts.load("700 60px 'Zen Old Mincho'", ALL), document.fonts.load("500 40px 'Zen Kaku Gothic New'", ALL), document.fonts.load('400 40px Marcellus', ROMAN.join('') + ' The AI Tarot Table'),
     document.fonts.load("400 40px 'Kaisei Decol'", T.ja), ...[...document.images].map(i => i.decode().catch(() => {})),
   ]).then(() => {
     fit(q, 270, [54, 50, 46, 42]); reads.forEach(r => fit(r, 230, [42, 39, 36, 33]));
+    cnames.forEach(c => { for (const fs of [56, 52, 48, 44, 40, 36]) { c.style.fontSize = fs + 'px'; if (c.firstChild.offsetWidth <= 1010) break; } });
     kws.forEach(k => { for (const fs of [34, 30, 27, 24]) { k.style.fontSize = fs + 'px'; if (k.firstChild.offsetWidth <= 310) break; } });
     main.style.whiteSpace = 'nowrap'; for (const fs of [112, 100, 88, 76, 66]) { main.style.fontSize = fs + 'px'; if (main.firstChild.offsetWidth <= 1000) break; }
     render(0); window.READY = true;
