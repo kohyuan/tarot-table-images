@@ -29,7 +29,8 @@
   // めくる3枚（左・中・右）。逆位置はカードごと上下逆さにする
   const PICKS = P.cards.map(c => ({ ...cardInfo(c.id), id: c.id, rev: c.pos === 'R', word: c.keyword || '', read: c.reading || '', art: c.art || null }));
   // 一列で流すカード：絵のあるカード。少なければ絵の無いカードの仮の表面を混ぜる
-  const RIB_SRC = (P.ribbon && P.ribbon.length ? P.ribbon : []).slice();
+  const PICK_IDS = new Set(P.cards.map(c => c.id));   // 引いた3枚は、めくる前に見えないよう最初の列に出さない
+  const RIB_SRC = (P.ribbon || []).filter(r => !PICK_IDS.has(r.id));
   const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
   const pr = (t, a, b) => clamp((t - a) / (b - a));
   const lerp = (a, b, p) => a + (b - a) * p;
@@ -74,7 +75,7 @@
   // —— 始まり：一列のカード ——
   const N = 25, SP = 150, J0 = 17;
   const head = t => { const p = pr(t, 0, 1.45); return lerp(170, 100 - J0 * SP, 1 - (1 - p) * (1 - p)); };
-  const FILL = ['M17', 'M19', 'M01', 'C02', 'M10', 'W03', 'M21', 'P10', 'M06', 'S06', 'M02', 'C10'];   // 絵が少ないときに混ぜる仮の表面
+  const FILL = ['M17', 'M19', 'M01', 'C02', 'M10', 'W03', 'M21', 'P10', 'M06', 'S06', 'M02', 'C10', 'M03', 'W01'].filter(id => !PICK_IDS.has(id));   // 絵が少ないときに混ぜる仮の表面
   const ribList = Array.from({ length: N }, (_, j) => RIB_SRC.length >= 3 ? RIB_SRC[j % RIB_SRC.length] : (RIB_SRC.length && j % 3 === 0 ? RIB_SRC[(j / 3) % RIB_SRC.length] : { id: FILL[j % FILL.length], art: null }));
   const RIB = ribList.map((r, j) => ({ ...makeCard(cardInfo(r.id), r.art), j }));
   const keep = { 17: 0, 20: 1, 23: 2 }, into = { 18: 0, 19: 1, 21: 1, 22: 2 };
