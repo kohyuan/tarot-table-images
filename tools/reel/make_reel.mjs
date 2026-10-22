@@ -16,7 +16,7 @@
 //     ]
 //   }
 //
-// カードの絵は、リポジトリの cards/<card_id>.jpg（.png・.webp も可）。無いカードは仮の表面で出す。
+// カードの絵は、リポジトリの cards/<card_id>.jpg（.png・.webp も可）。3枚のどれかに絵が無いときは、動画を作らずにエラーで止まる。
 // 音は tools/reel/audio/<正逆3文字>.m4a（例：UUR.m4a）を重ねる。
 // 出来上がり：MP4（H.264・AAC）、1080x1920、30fps、33.3秒。書き出したあと条件を自分で確かめ、外れていればエラーで止まる。
 import fs from 'fs'; import path from 'path'; import http from 'http'; import os from 'os';
@@ -45,6 +45,8 @@ if (new Set(P.cards.map(c => c.id)).size !== 3) die('3枚は別のカードに�
 const CARD_DIR = path.join(ROOT, 'cards');
 const artOf = id => { for (const ext of ['jpg', 'png', 'webp', 'jpeg']) { const f = path.join(CARD_DIR, `${id}.${ext}`); if (fs.existsSync(f)) return `/cards/${id}.${ext}`; } return null; };
 P.cards.forEach(c => { c.art = artOf(c.id); });
+const noArt = P.cards.filter(c => !c.art).map(c => c.id);
+if (noArt.length) die(`絵の無いカード: ${noArt.join(' / ')}。めくる3枚に絵の無いカードがあるので、本物の動画は作りません（cards/<card_id>.jpg などを置いてから作り直してください）`);
 const allArts = fs.existsSync(CARD_DIR) ? fs.readdirSync(CARD_DIR).filter(f => /^[MWCSP]\d\d\.(jpg|jpeg|png|webp)$/.test(f)).sort() : [];
 P.ribbon = allArts.map(f => ({ id: f.slice(0, 3), art: `/cards/${f}` }));
 const audio = path.join(HERE, 'audio', P.cards.map(c => c.pos).join('') + '.m4a');
