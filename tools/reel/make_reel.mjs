@@ -2,11 +2,11 @@
 // タロットテーブル リール（本物の動画）を1本作る。
 //
 // 使い方（リポジトリの根から）:
-//   node tools/reel/make_reel.mjs --params reel.json --out reels/R0001.mp4
+//   node tools/reel/make_reel.mjs --params reel.json --out reels/20261022.mp4
 //
 // reel.json の形（表 reels_post の1行分）:
 //   {
-//     "post_id": "R0001",
+//     "post_id": "20261022",
 //     "headline": "明日からの7日間 10/23(金)~10/29(木)のお金・買い物",   // I列
 //     "question": "お金の出入りや買い物は、この7日間でどう動きやすいでしょう。", // J列
 //     "cards": [                                                         // G列・H列の左・中・右
@@ -30,7 +30,7 @@ const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] :
 const die = m => { console.error('✗ ' + m); process.exit(1); };
 
 const paramsPath = opt('--params'); const out = opt('--out');
-if (!paramsPath || !out) die('使い方: node tools/reel/make_reel.mjs --params reel.json --out reels/R0001.mp4');
+if (!paramsPath || !out) die('使い方: node tools/reel/make_reel.mjs --params reel.json --out reels/20261022.mp4');
 const FPS = +opt('--fps', 30), WK = +opt('--workers', Math.max(1, Math.min(3, os.cpus().length))), W = 1080, H = 1920;
 const P = JSON.parse(fs.readFileSync(paramsPath, 'utf8'));
 

@@ -16,14 +16,14 @@ npm install
 ## 使い方（リポジトリの根から）
 
 ```
-node tools/reel/make_reel.mjs --params reel.json --out reels/R0001.mp4
+node tools/reel/make_reel.mjs --params reel.json --out reels/20261022.mp4
 ```
 
 reel.json の形：
 
 ```json
 {
-  "post_id": "R0001",
+  "post_id": "20261022",
   "headline": "明日からの7日間 10/23(金)~10/29(木)のお金・買い物",
   "question": "お金の出入りや買い物は、この7日間でどう動きやすいでしょう。",
   "cards": [
@@ -36,7 +36,7 @@ reel.json の形：
 
 | 項目 | 表の列 | 中身 |
 |---|---|---|
-| `post_id` | B | 表示には使わない（書き出しの記録用） |
+| `post_id` | B | 出す日の YYYYMMDD（例：20261022）。表示には使わない（書き出しの記録用） |
 | `headline` | I | 「〜の」より後ろを大きく、前を小さく出す。後ろの部分を変えたい時は `"theme"` を足す |
 | `question` | J | 考える時間に出す問い |
 | `cards[].id` | G | 左・中・右の card_id（M00〜M21、W/C/S/P + 01〜14） |
