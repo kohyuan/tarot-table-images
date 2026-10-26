@@ -92,6 +92,8 @@ def card_key(filename):
         return "M%02d" % ROMAN.index(head), pos
     return None
 
+REEL_ART = set()  # リール用の絵（cards/<card_id>.png）から読んだもの。リールと同じ仕上げでカードにする
+
 def load_cards(folder):
     found = {}
     if folder and os.path.isdir(folder):
@@ -99,7 +101,42 @@ def load_cards(folder):
             k = card_key(f)
             if k:
                 found[k] = os.path.join(folder, f)
+                if "_" not in os.path.splitext(f)[0]:
+                    REEL_ART.add(k)
     return found
+
+# —— リールと同じカードの仕上げ（tools/reel/page の index.html と film.js の写し）——
+# 3:5 のカードに絵を敷き、内側に金線、下を暗くぼかした帯に金の番号と名前。逆位置はカードごと上下逆。
+MAJ = ['愚者', '魔術師', '女教皇', '女帝', '皇帝', '教皇', '恋人', '戦車', '力', '隠者', '運命の輪', '正義', '吊るされた男', '死神', '節制', '悪魔', '塔', '星', '月', '太陽', '審判', '世界']
+SUIT = {'W': 'ワンド', 'C': 'カップ', 'S': 'ソード', 'P': 'ペンタクル'}
+RANK = {1: 'エース', 11: 'ペイジ', 12: 'ナイト', 13: 'クイーン', 14: 'キング'}
+
+def card_info(cid):
+    n = int(cid[1:])
+    if cid[0] == 'M':
+        return MAJ[n], ROMAN[n]
+    return SUIT[cid[0]] + 'の' + str(RANK.get(n, n)), ''
+
+def reel_one_page(caption, art_path, cid, reversed_, label):
+    from pathlib import Path
+    fonts = Path(__file__).resolve().parent / 'reel' / 'node_modules' / '@fontsource'
+    links = ''.join(f'<link rel="stylesheet" href="{(fonts / f).as_uri()}">' for f in ['zen-old-mincho/700.css', 'marcellus/400.css'] if (fonts / f).exists())
+    name, num = card_info(cid)
+    top = 44 if caption else 20
+    css = CSS + (
+        ".row{top:%dpx}.slot{width:336px}"
+        ".box{width:336px;height:560px;position:relative;filter:drop-shadow(0 8px 18px rgba(0,0,0,.55))}"
+        ".rc{position:absolute;left:0;top:0;width:560px;height:933px;border-radius:30px;overflow:hidden;transform-origin:0 0;transform:scale(.6)%s}"
+        ".rc img{width:100%%;height:100%%;display:block;object-fit:cover}"
+        ".rc .line{position:absolute;inset:22px;border:2.5px solid rgba(230,200,130,.9);border-radius:14px;box-shadow:0 0 6px rgba(230,200,130,.35)}"
+        ".rc .band{position:absolute;left:0;right:0;bottom:0;height:210px;background:linear-gradient(to bottom,rgba(10,12,30,0) 0%%,rgba(10,12,30,.72) 45%%,rgba(10,12,30,.86) 100%%)}"
+        ".rc .label{position:absolute;left:0;right:0;bottom:58px;text-align:center;color:#e8c983;font:700 52px 'Zen Old Mincho','Noto Serif CJK JP',serif;letter-spacing:.14em;text-shadow:0 2px 8px rgba(0,0,0,.6);white-space:nowrap}"
+        ".rc .label .num{font:400 40px 'Marcellus',serif;letter-spacing:.2em;margin-right:22px;vertical-align:4px}"
+    ) % (top, " translate(560px,933px) rotate(180deg)" if reversed_ else "")
+    num_html = f'<span class="num">{num}</span>' if num else ''
+    cap = f'<div class="cap">{caption}</div>' if caption else ''
+    card = f'<div class="rc"><img src="{Path(art_path).resolve().as_uri()}"><div class="band"></div><div class="line"></div><div class="label">{num_html}{name}</div></div>'
+    return f'<!doctype html><html><head><meta charset="utf-8">{links}<style>{css}</style></head><body>{cap}<div class="row"><div class="slot"><div class="box">{card}</div><div class="lab">{label}</div></div></div></body></html>'
 
 def crop_card(path, rotate):
     """背景つきの正方形の画像なら、カードの部分だけを切り出す。全面がカードならそのまま。"""
@@ -156,7 +193,12 @@ def main():
         if it["kind"] == "one":
             c, p = it["card"], it["pos"]
             label = POS[p]
-            if (c, "U") in wc or (c, "R") in wc:
+            if (c, "U") in REEL_ART or (c, "R") in REEL_ART:
+                k = (c, p) if (c, p) in REEL_ART else (c, "U" if p == "R" else "R")
+                # 絵は正位置として描かれているので、逆位置ならカードごと上下逆にする
+                pages[it["post_id"]] = reel_one_page(it.get("caption", ""), wc[k], c, (p == "R") != (k[1] == "R"), label)
+                art[it["post_id"]] = "reel"
+            elif (c, "U") in wc or (c, "R") in wc:
                 uri = crop_card(wc[(c, p)], False) if (c, p) in wc else crop_card(wc[(c, "U" if p == "R" else "R")], True)
                 pages[it["post_id"]] = wc_one_page(it.get("caption", ""), uri, label)
                 art[it["post_id"]] = "watercolor"
@@ -185,7 +227,7 @@ def main():
         b = p.chromium.launch(); pg = b.new_page(viewport={"width": W, "height": H})
         for name, html in pages.items():
             f = os.path.join(tmp, name + ".html"); open(f, "w", encoding="utf-8").write(html)
-            pg.goto("file://" + f); pg.wait_for_timeout(150)
+            pg.goto("file://" + f); pg.evaluate("document.fonts.ready"); pg.wait_for_timeout(150)
             pg.screenshot(path=os.path.join(a.out, "img", name + ".png"))
         b.close()
 
