@@ -77,6 +77,9 @@ def card_key(filename):
     """水彩画のファイル名から (card_id, 向き U/R) を取り出す。分からなければ None。"""
     base = os.path.splitext(os.path.basename(filename))[0]
     parts = base.split("_")
+    # リポジトリの cards/<card_id>.png（リール用の絵）は向きの名前が無いので、正位置の絵として扱う
+    if len(parts) == 1 and re.fullmatch(r"M(0\d|1\d|2[01])|[WCSP](0[1-9]|1[0-4])", base):
+        return base, "U"
     if len(parts) < 2:
         return None
     head, last = parts[0], parts[-1].lower()
