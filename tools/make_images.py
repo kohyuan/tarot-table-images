@@ -34,7 +34,7 @@ W, H = 1200, 675
 
 NODE = r"""
 import { byId } from '__REPO__/deck/cards.mjs';
-import { cardSvg, backSvg } from '__REPO__/deck/art.mjs';
+import { cardSvg, backSvg } from '__ART__';
 import { readFileSync, writeFileSync } from 'fs';
 const S = {W:'wands', C:'cups', S:'swords', P:'pentacles'};
 const id = c => c[0] === 'M' ? `major-${c.slice(1)}` : `${S[c[0]]}-${c.slice(1)}`;
@@ -175,13 +175,17 @@ def main():
     ap.add_argument("--cards")
     a = ap.parse_args()
     wc = load_cards(a.cards)
-    if not os.path.exists(os.path.join(REPO, "deck", "art.mjs")):
-        sys.exit(f"カードの絵のコードが見つからない: {REPO}/deck/art.mjs")
+    # アプリ側で deck/art.mjs が deck/archive/art.mjs へ移された（2026/10/31）。元の場所に無ければ archive を見る
+    art_path = os.path.join(REPO, "deck", "art.mjs")
+    if not os.path.exists(art_path):
+        art_path = os.path.join(REPO, "deck", "archive", "art.mjs")
+    if not os.path.exists(art_path):
+        sys.exit(f"カードの絵のコードが見つからない: {REPO}/deck/art.mjs（{REPO}/deck/archive/art.mjs にも無い）")
     spec = json.load(open(a.spec, encoding="utf-8"))
     items = [it for it in spec["items"] if it["kind"] in ("open", "one")]
     os.makedirs(os.path.join(a.out, "img"), exist_ok=True)
     tmp = tempfile.mkdtemp()
-    js = os.path.join(tmp, "svg.mjs"); open(js, "w").write(NODE.replace("__REPO__", REPO))
+    js = os.path.join(tmp, "svg.mjs"); open(js, "w").write(NODE.replace("__REPO__", REPO).replace("__ART__", art_path))
     ij = os.path.join(tmp, "items.json"); json.dump(items, open(ij, "w"))
     sj = os.path.join(tmp, "svgs.json")
     subprocess.run(["node", js, ij, sj], check=True)
