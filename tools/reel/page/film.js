@@ -4,7 +4,7 @@
 // 時間割は固定（33.3秒）。音は ../audio/<正逆3文字>.m4a を、書き出しの道具が重ねる。
 //
 // 悩みの形（params に closing があるとき。2026/11/21〜）：
-// 流れ：同じ始まり → 悩みの一言を上に出して3.5秒考えてもらう（悩みは最後まで上に残す）
+// 流れ：悩みの一言を最初のコマから上に出しておく（最後まで残す）→ 同じ始まり → 3.5秒考えてもらう
 // → 左・中・右を1枚ずつめくる（1枚9秒。読みの文のあとに「今日できること」を出す）→ 3枚を並べ、終わりの文で締める（ホーム画面なし）
 // 時間割は固定（41.8秒）。音は ../audio/v2/<正逆3文字>.m4a。
 (function () {
@@ -139,7 +139,7 @@
     show(sub, pr(t, H0, H0 + .5) * (1 - homeOut), 0, 160 + (1 - eo(pr(t, H0, H0 + .6))) * 14);
     show(main, pr(t, H0 + .2, H0 + .8) * (1 - .45 * anyBig) * (1 - homeOut), 0, 205 + (1 - eo(pr(t, H0 + .2, H0 + .9))) * 18);
 
-    const qIn = pr(t, Q0, Q0 + .5), qOut = pr(t, THINK1, THINK1 + .3);
+    const qIn = V2 ? 1 : pr(t, Q0, Q0 + .5), qOut = pr(t, THINK1, THINK1 + .3);
     show(q, V2 ? qIn * (1 - .25 * anyBig) : qIn * (1 - qOut), 0, QY + (1 - eo(qIn)) * 16);
     show(stop, pr(t, THINK0, THINK0 + .3) * (1 - qOut), 0, 1320 + (1 - eo(pr(t, THINK0, THINK0 + .4))) * 20);
     show(bar, pr(t, THINK0, THINK0 + .3) * (1 - qOut), 0, 1530);
