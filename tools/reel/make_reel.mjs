@@ -35,7 +35,9 @@ const FPS = +opt('--fps', 30), WK = +opt('--workers', Math.max(1, Math.min(3, os
 const P = JSON.parse(fs.readFileSync(paramsPath, 'utf8'));
 
 // —— 中身の確かめ ——
-if (!P.headline || !P.question) die('headline と question が必要です');
+const V2 = !!P.closing;   // 悩みの形（closing があるとき）：1枚9秒、読みの文＋今日できること、終わりの文で締める（41.8秒）
+if (!P.question || (!V2 && !P.headline)) die(V2 ? 'question（悩みの一言）が必要です' : 'headline と question が必要です');
+if (V2) P.cards?.forEach((c, i) => { if (!c.reading || !c.action) die(`悩みの形では cards[${i}] に reading と action が必要です`); });
 if (!Array.isArray(P.cards) || P.cards.length !== 3) die('cards は左・中・右の3枚が必要です');
 const ID = /^(M(0\d|1\d|2[01])|[WCSP](0[1-9]|1[0-4]))$/;
 P.cards.forEach((c, i) => { if (!ID.test(c.id)) die(`cards[${i}].id「${c.id}」は card_id の形ではありません`); if (!/^[UR]$/.test(c.pos)) die(`cards[${i}].pos は U か R`); });
@@ -49,7 +51,7 @@ const noArt = P.cards.filter(c => !c.art).map(c => c.id);
 if (noArt.length) die(`絵の無いカード: ${noArt.join(' / ')}。めくる3枚に絵の無いカードがあるので、本物の動画は作りません（cards/<card_id>.jpg などを置いてから作り直してください）`);
 const allArts = fs.existsSync(CARD_DIR) ? fs.readdirSync(CARD_DIR).filter(f => /^[MWCSP]\d\d\.(jpg|jpeg|png|webp)$/.test(f)).sort() : [];
 P.ribbon = allArts.map(f => ({ id: f.slice(0, 3), art: `/cards/${f}` }));
-const audio = path.join(HERE, 'audio', P.cards.map(c => c.pos).join('') + '.m4a');
+const audio = path.join(HERE, 'audio', ...(V2 ? ['v2'] : []), P.cards.map(c => c.pos).join('') + '.m4a');
 if (!fs.existsSync(audio)) die('音のファイルがありません: ' + audio);
 
 // —— ブラウザ（headless Chrome）——
@@ -137,8 +139,9 @@ if (!v || v.width !== W || v.height !== H) bad.push('大きさが 1080x1920 で�
 if (!au || au.codec_name !== 'aac') bad.push('音声（AAC）が無い');
 if (!(d >= 3 && d <= 90)) bad.push(`長さ ${d} 秒が 3〜90 秒に入らない`);
 if (fitInfo.q > 270) bad.push('問いが長すぎて枠に収まらない');
-fitInfo.reads.forEach((h, i) => { if (h > 230) bad.push(`${['左', '中', '右'][i]}の読みが長すぎて枠に収まらない`); });
+fitInfo.reads.forEach((h, i) => { if (h > (V2 ? 400 : 230)) bad.push(`${['左', '中', '右'][i]}の読みが長すぎて枠に収まらない`); });
 (fitInfo.names || []).forEach((w, i) => { if (w > 1040) bad.push(`${['左', '中', '右'][i]}のカード名とキーワードが長すぎて横に収まらない`); });
+if (V2 && fitInfo.closing > 520) bad.push('終わりの文が長すぎて枠に収まらない');
 if (bad.length) die(bad.join(' / '));
 console.log(`✓ ${out}（${d.toFixed(1)}秒、${(fs.statSync(out).size / 1e6).toFixed(1)}MB、${((Date.now() - t0) / 1000).toFixed(0)}秒で作成）`);
 process.exit(0);
