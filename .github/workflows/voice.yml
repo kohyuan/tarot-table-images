@@ -1,0 +1,31 @@
+name: voice
+# 台本（voice/requests/*.json）を置くと、VOICEVOX で音声を作り voice/output/ に入れて戻す
+on:
+  push:
+    paths: ['voice/requests/**.json']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: voice-${{ github.ref }}
+jobs:
+  synth:
+    runs-on: ubuntu-latest
+    services:
+      voicevox:
+        image: voicevox/voicevox_engine:cpu-latest
+        ports: ['50021:50021']
+    steps:
+      - uses: actions/checkout@v4
+      - name: wait for engine
+        run: |
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:50021/version && exit 0; sleep 5; done; exit 1
+      - name: synth
+        run: python3 voice/synth.py
+      - name: commit
+        run: |
+          git config user.name "voice-bot"; git config user.email "voice-bot@users.noreply.github.com"
+          git add voice/output
+          git diff --cached --quiet && exit 0
+          git commit -m "voice: add generated audio"
+          git pull --rebase && git push
