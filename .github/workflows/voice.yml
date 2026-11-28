@@ -20,6 +20,8 @@ jobs:
       - name: wait for engine
         run: |
           for i in $(seq 1 60); do curl -sf http://127.0.0.1:50021/version && exit 0; sleep 5; done; exit 1
+      - name: install ffmpeg
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
       - name: synth
         run: python3 voice/synth.py
       - name: commit
